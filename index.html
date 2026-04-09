@@ -68,10 +68,6 @@
       font-size: 14px;
     }
 
-    input[type=file] {
-      margin-bottom: 8px;
-    }
-
     .grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -105,11 +101,7 @@
     .contact .name { font-weight: 500; }
     .contact .number { font-size: 12px; color: var(--muted); }
 
-    .status {
-      font-size: 12px;
-      margin-top: 4px;
-    }
-
+    .status { font-size: 12px; margin-top: 4px; }
     .status.pending { color: var(--muted); }
     .status.opened { color: var(--blue); }
     .status.sent { color: var(--primary); }
@@ -120,8 +112,13 @@
       padding: 12px;
       background: #f3f4f6;
       min-height: 80px;
-      white-space: pre-wrap;
+      white-space: normal;
+      line-height: 1.4;
     }
+
+    .preview em { font-style: italic; }
+    .preview strong { font-weight: 600; }
+    .preview del { text-decoration: line-through; }
 
     .buttons {
       margin-top: 12px;
@@ -145,10 +142,7 @@
       border: none;
     }
 
-    button:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
 
     footer {
       padding: 12px;
@@ -159,140 +153,141 @@
   </style>
 </head>
 <body>
-  <header>WhatsApp Queue Sender</header>
+<header>WhatsApp Queue Sender</header>
 
-  <main>
+<main>
+  <div class="card">
+    <h2>1. Upload CSV</h2>
+    <input type="file" id="csvFile" accept=".csv" />
+    <div class="hint">CSV headers: <strong>Name</strong>, <strong>ContactNumber</strong></div>
+    <div id="csvStatus" class="hint"></div>
+  </div>
+
+  <div class="card">
+    <h2>2. Message Template</h2>
+    <textarea id="template" placeholder="Hi *{{Name}}*, your appointment is _confirmed_."></textarea>
+    <div class="hint">WhatsApp formatting supported: *bold*  _italic_  ~strike~</div>
+  </div>
+
+  <div class="grid">
     <div class="card">
-      <h2>1. Upload CSV</h2>
-      <input type="file" id="csvFile" accept=".csv" />
-      <div class="hint">CSV must contain headers: <strong>Name</strong>, <strong>ContactNumber</strong> (with country code)</div>
-      <div id="csvStatus" class="hint"></div>
+      <h2>3. Contact Queue</h2>
+      <div id="queue" class="queue"></div>
     </div>
 
     <div class="card">
-      <h2>2. Message Template</h2>
-      <textarea id="template" placeholder="Hi {{Name}}, this is a reminder for your appointment."></textarea>
-      <div class="hint">Available field: {{Name}}</div>
-    </div>
-
-    <div class="grid">
-      <div class="card">
-        <h2>3. Contact Queue</h2>
-        <div id="queue" class="queue"></div>
-      </div>
-
-      <div class="card">
-        <h2>Message Preview</h2>
-        <div id="preview" class="preview"></div>
-        <div class="buttons">
-          <button id="openBtn" class="primary" disabled>Open in WhatsApp</button>
-          <button id="sentBtn" disabled>Mark as Sent</button>
-          <button id="skipBtn" disabled>Skip</button>
-        </div>
+      <h2>Message Preview</h2>
+      <div id="preview" class="preview"></div>
+      <div class="buttons">
+        <button id="openBtn" class="primary" disabled>Open in WhatsApp</button>
+        <button id="sentBtn" disabled>Mark as Sent</button>
+        <button id="skipBtn" disabled>Skip</button>
       </div>
     </div>
-  </main>
+  </div>
+</main>
 
-  <footer>
-    🔒 All processing happens in your browser. No data is stored or uploaded.
-  </footer>
+<footer>🔒 All processing happens in your browser. No data is stored.</footer>
 
-  <script>
-    const csvFile = document.getElementById('csvFile');
-    const queueEl = document.getElementById('queue');
-    const previewEl = document.getElementById('preview');
-    const openBtn = document.getElementById('openBtn');
-    const sentBtn = document.getElementById('sentBtn');
-    const skipBtn = document.getElementById('skipBtn');
-    const templateEl = document.getElementById('template');
-    const csvStatus = document.getElementById('csvStatus');
+<script>
+  const csvFile = document.getElementById('csvFile');
+  const queueEl = document.getElementById('queue');
+  const previewEl = document.getElementById('preview');
+  const openBtn = document.getElementById('openBtn');
+  const sentBtn = document.getElementById('sentBtn');
+  const skipBtn = document.getElementById('skipBtn');
+  const templateEl = document.getElementById('template');
+  const csvStatus = document.getElementById('csvStatus');
 
-    let contacts = [];
-    let currentIndex = -1;
+  let contacts = [];
+  let currentIndex = -1;
 
-    csvFile.addEventListener('change', () => {
-      const file = csvFile.files[0];
-      if (!file) return;
+  csvFile.addEventListener('change', () => {
+    const file = csvFile.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => parseCSV(e.target.result);
+    reader.readAsText(file);
+  });
 
-      const reader = new FileReader();
-      reader.onload = e => parseCSV(e.target.result);
-      reader.readAsText(file);
+  templateEl.addEventListener('input', () => renderPreview());
+
+  function parseCSV(text) {
+    const lines = text.trim().split(/\r?\n/);
+    const headers = lines.shift().split(',').map(h => h.trim());
+
+    if (!headers.includes('Name') || !headers.includes('ContactNumber')) {
+      csvStatus.textContent = '❌ Invalid CSV headers';
+      return;
+    }
+
+    contacts = lines.map(line => {
+      const values = line.split(',');
+      const obj = {};
+      headers.forEach((h, i) => obj[h] = values[i]?.trim() || '');
+      obj._status = 'pending';
+      return obj;
     });
 
-    function parseCSV(text) {
-      const lines = text.trim().split(/\r?\n/);
-      const headers = lines.shift().split(',').map(h => h.trim());
+    csvStatus.textContent = `✅ Loaded ${contacts.length} contacts`;
+    selectContact(0);
+    renderQueue();
+  }
 
-      if (!headers.includes('Name') || !headers.includes('ContactNumber')) {
-        csvStatus.textContent = '❌ Invalid CSV headers';
-        return;
-      }
+  function renderQueue() {
+    queueEl.innerHTML = '';
+    contacts.forEach((c, i) => {
+      const div = document.createElement('div');
+      div.className = 'contact' + (i === currentIndex ? ' active' : '');
+      div.innerHTML = `<div class="name">${c.Name}</div><div class="number">+${c.ContactNumber}</div><div class="status ${c._status}">${c._status}</div>`;
+      div.onclick = () => selectContact(i);
+      queueEl.appendChild(div);
+    });
+  }
 
-      contacts = lines.map(line => {
-        const values = line.split(',');
-        const obj = {};
-        headers.forEach((h, i) => obj[h] = values[i]?.trim() || '');
-        obj._status = 'pending';
-        return obj;
-      });
+  function selectContact(index) {
+    currentIndex = index;
+    openBtn.disabled = sentBtn.disabled = skipBtn.disabled = false;
+    renderQueue();
+    renderPreview();
+  }
 
-      csvStatus.textContent = `✅ Loaded ${contacts.length} contacts`;
-      currentIndex = 0;
-      renderQueue();
-      selectContact(0);
-    }
+  function escapeHTML(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
 
-    function renderQueue() {
-      queueEl.innerHTML = '';
-      contacts.forEach((c, i) => {
-        const div = document.createElement('div');
-        div.className = 'contact' + (i === currentIndex ? ' active' : '');
-        div.innerHTML = `
-          <div class="name">${c.Name}</div>
-          <div class="number">+${c.ContactNumber}</div>
-          <div class="status ${c._status}">${c._status}</div>
-        `;
-        div.onclick = () => selectContact(i);
-        queueEl.appendChild(div);
-      });
-    }
+  function formatWhatsApp(text) {
+    let safe = escapeHTML(text);
+    safe = safe.replace(/\*(.*?)\*/g, '<strong>$1</strong>');
+    safe = safe.replace(/_(.*?)_/g, '<em>$1</em>');
+    safe = safe.replace(/~(.*?)~/g, '<del>$1</del>');
+    return safe.replace(/\n/g, '<br>');
+  }
 
-    function selectContact(index) {
-      currentIndex = index;
-      const c = contacts[index];
-      if (!c) return;
+  function renderPreview() {
+    if (currentIndex < 0) return;
+    const c = contacts[currentIndex];
+    let msg = templateEl.value.replace(/{{Name}}/g, c.Name);
+    previewEl.innerHTML = formatWhatsApp(msg);
+  }
 
-      const msg = templateEl.value.replace(/{{Name}}/g, c.Name);
-      previewEl.textContent = msg;
+  openBtn.onclick = () => {
+    const c = contacts[currentIndex];
+    c._status = 'opened';
+    const raw = templateEl.value.replace(/{{Name}}/g, c.Name);
+    const url = `https://wa.me/${c.ContactNumber}?text=${encodeURIComponent(raw)}`;
+    window.open(url, '_blank');
+    renderQueue();
+  };
 
-      openBtn.disabled = false;
-      sentBtn.disabled = false;
-      skipBtn.disabled = false;
+  sentBtn.onclick = () => markAndMove('sent');
+  skipBtn.onclick = () => markAndMove('pending');
 
-      renderQueue();
-    }
-
-    openBtn.onclick = () => {
-      const c = contacts[currentIndex];
-      if (!c) return;
-      c._status = 'opened';
-
-      const msg = encodeURIComponent(templateEl.value.replace(/{{Name}}/g, c.Name));
-      const url = `https://wa.me/${c.ContactNumber}?text=${msg}`;
-      window.open(url, '_blank');
-      renderQueue();
-    };
-
-    sentBtn.onclick = () => markAndMove('sent');
-    skipBtn.onclick = () => markAndMove('pending');
-
-    function markAndMove(status) {
-      if (currentIndex < 0) return;
-      contacts[currentIndex]._status = status;
-      const next = currentIndex + 1;
-      if (next < contacts.length) selectContact(next);
-      renderQueue();
-    }
-  </script>
+  function markAndMove(status) {
+    contacts[currentIndex]._status = status;
+    if (currentIndex + 1 < contacts.length) selectContact(currentIndex + 1);
+    renderQueue();
+  }
+</script>
 </body>
 </html>
