@@ -55,6 +55,18 @@
     .hint {
       font-size: 12px;
       color: var(--muted);
+      line-height: 1.4;
+    }
+
+    .example {
+      margin-top: 8px;
+      background: #f3f4f6;
+      border: 1px dashed var(--border);
+      border-radius: 8px;
+      padding: 8px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 12px;
+      white-space: pre;
     }
 
     textarea {
@@ -112,7 +124,6 @@
       padding: 12px;
       background: #f3f4f6;
       min-height: 80px;
-      white-space: normal;
       line-height: 1.4;
     }
 
@@ -159,7 +170,13 @@
   <div class="card">
     <h2>1. Upload CSV</h2>
     <input type="file" id="csvFile" accept=".csv" />
-    <div class="hint">CSV headers: <strong>Name</strong>, <strong>ContactNumber</strong></div>
+    <div class="hint">
+      Required headers (case-sensitive): <strong>Name</strong>, <strong>ContactNumber</strong><br>
+      • ContactNumber must include country code (no spaces, no + sign)
+    </div>
+    <div class="example">Name,ContactNumber
+Anthony Loh,6591234567
+Jane Tan,6588123456</div>
     <div id="csvStatus" class="hint"></div>
   </div>
 
