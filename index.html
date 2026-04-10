@@ -328,36 +328,26 @@ Your appointment is _confirmed_. 🎉"></textarea>
 
   openBtn.onclick = () => {
     if (currentIndex < 0) return;
-
+  
     const c = contacts[currentIndex];
-
-    // ✅ RAW Unicode text (emojis intact)
+  
     const rawMessage =
       templateEl.value.replace(/{{Name}}/g, c.Name);
-
-    // ✅ Encode ONCE, at the very end
+  
     const encodedMessage =
       encodeURIComponent(rawMessage);
-
+  
     const url =
-      `https://wa.me/${c.ContactNumber}?text=${encodedMessage}`;
-
+      `https://api.whatsapp.com/send` +
+      `?phone=${c.ContactNumber}` +
+      `&text=${encodedMessage}` +
+      `&app_absent=0`;
+  
     window.open(url, '_blank');
-
+  
     c._status = 'opened';
     renderQueue();
   };
-
-  sentBtn.onclick = () => markAndMove('sent');
-  skipBtn.onclick = () => markAndMove('pending');
-
-  function markAndMove(status) {
-    contacts[currentIndex]._status = status;
-    if (currentIndex + 1 < contacts.length) {
-      selectContact(currentIndex + 1);
-    }
-    renderQueue();
-  }
 </script>
 </body>
 </html>
