@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>WhatsApp Queue Sender</title>
+
   <style>
     :root {
       --bg: #f9fafb;
@@ -125,10 +126,11 @@
       background: #f3f4f6;
       min-height: 80px;
       line-height: 1.4;
+      white-space: normal;
     }
 
-    .preview em { font-style: italic; }
     .preview strong { font-weight: 600; }
+    .preview em { font-style: italic; }
     .preview del { text-decoration: line-through; }
 
     .buttons {
@@ -153,7 +155,10 @@
       border: none;
     }
 
-    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
 
     footer {
       padding: 12px;
@@ -163,10 +168,13 @@
     }
   </style>
 </head>
+
 <body>
 <header>WhatsApp Queue Sender</header>
 
 <main>
+
+  <!-- Upload CSV -->
   <div class="card">
     <h2>1. Upload CSV</h2>
     <input type="file" id="csvFile" accept=".csv" />
@@ -180,12 +188,20 @@ Jane Tan,6588123456</div>
     <div id="csvStatus" class="hint"></div>
   </div>
 
+  <!-- Message Template -->
   <div class="card">
     <h2>2. Message Template</h2>
-    <textarea id="template" placeholder="Hi *{{Name}}*, your appointment is _confirmed_."></textarea>
-    <div class="hint">WhatsApp formatting supported: *bold*  _italic_  ~strike~</div>
+    <textarea
+      id="template"
+      placeholder="Hi *{{Name}}* 🙂👍
+Your appointment is _confirmed_. 🎉"></textarea>
+    <div class="hint">
+      WhatsApp formatting supported: *bold*  _italic_  ~strike~<br>
+      Emojis are fully supported ✅
+    </div>
   </div>
 
+  <!-- Queue + Preview -->
   <div class="grid">
     <div class="card">
       <h2>3. Contact Queue</h2>
@@ -195,16 +211,26 @@ Jane Tan,6588123456</div>
     <div class="card">
       <h2>Message Preview</h2>
       <div id="preview" class="preview"></div>
+
       <div class="buttons">
-        <button id="openBtn" class="primary" disabled>Open in WhatsApp</button>
-        <button id="sentBtn" disabled>Mark as Sent</button>
-        <button id="skipBtn" disabled>Skip</button>
+        <button id="openBtn" class="primary" disabled>
+          Open in WhatsApp
+        </button>
+        <button id="sentBtn" disabled>
+          Mark as Sent
+        </button>
+        <button id="skipBtn" disabled>
+          Skip
+        </button>
       </div>
     </div>
   </div>
+
 </main>
 
-<footer>🔒 All processing happens in your browser. No data is stored.</footer>
+<footer>
+  🔒 All processing happens in your browser. No data is stored or uploaded.
+</footer>
 
 <script>
   const csvFile = document.getElementById('csvFile');
@@ -227,7 +253,7 @@ Jane Tan,6588123456</div>
     reader.readAsText(file);
   });
 
-  templateEl.addEventListener('input', () => renderPreview());
+  templateEl.addEventListener('input', renderPreview);
 
   function parseCSV(text) {
     const lines = text.trim().split(/\r?\n/);
@@ -240,10 +266,10 @@ Jane Tan,6588123456</div>
 
     contacts = lines.map(line => {
       const values = line.split(',');
-      const obj = {};
-      headers.forEach((h, i) => obj[h] = values[i]?.trim() || '');
-      obj._status = 'pending';
-      return obj;
+      const row = {};
+      headers.forEach((h, i) => row[h] = values[i]?.trim() || '');
+      row._status = 'pending';
+      return row;
     });
 
     csvStatus.textContent = `✅ Loaded ${contacts.length} contacts`;
@@ -256,7 +282,11 @@ Jane Tan,6588123456</div>
     contacts.forEach((c, i) => {
       const div = document.createElement('div');
       div.className = 'contact' + (i === currentIndex ? ' active' : '');
-      div.innerHTML = `<div class="name">${c.Name}</div><div class="number">+${c.ContactNumber}</div><div class="status ${c._status}">${c._status}</div>`;
+      div.innerHTML = `
+        <div class="name">${c.Name}</div>
+        <div class="number">+${c.ContactNumber}</div>
+        <div class="status ${c._status}">${c._status}</div>
+      `;
       div.onclick = () => selectContact(i);
       queueEl.appendChild(div);
     });
@@ -269,8 +299,13 @@ Jane Tan,6588123456</div>
     renderPreview();
   }
 
+  /* -------- Preview Formatting (HTML ONLY) -------- */
+
   function escapeHTML(str) {
-    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
   }
 
   function formatWhatsApp(text) {
@@ -284,16 +319,32 @@ Jane Tan,6588123456</div>
   function renderPreview() {
     if (currentIndex < 0) return;
     const c = contacts[currentIndex];
-    let msg = templateEl.value.replace(/{{Name}}/g, c.Name);
-    previewEl.innerHTML = formatWhatsApp(msg);
+    const merged =
+      templateEl.value.replace(/{{Name}}/g, c.Name);
+    previewEl.innerHTML = formatWhatsApp(merged);
   }
 
+  /* -------- WhatsApp Launch (RAW TEXT ONLY) -------- */
+
   openBtn.onclick = () => {
+    if (currentIndex < 0) return;
+
     const c = contacts[currentIndex];
-    c._status = 'opened';
-    const raw = templateEl.value.replace(/{{Name}}/g, c.Name);
-    const url = `https://wa.me/${c.ContactNumber}?text=${encodeURIComponent(raw)}`;
+
+    // ✅ RAW Unicode text (emojis intact)
+    const rawMessage =
+      templateEl.value.replace(/{{Name}}/g, c.Name);
+
+    // ✅ Encode ONCE, at the very end
+    const encodedMessage =
+      encodeURIComponent(rawMessage);
+
+    const url =
+      `https://wa.me/${c.ContactNumber}?text=${encodedMessage}`;
+
     window.open(url, '_blank');
+
+    c._status = 'opened';
     renderQueue();
   };
 
@@ -302,7 +353,9 @@ Jane Tan,6588123456</div>
 
   function markAndMove(status) {
     contacts[currentIndex]._status = status;
-    if (currentIndex + 1 < contacts.length) selectContact(currentIndex + 1);
+    if (currentIndex + 1 < contacts.length) {
+      selectContact(currentIndex + 1);
+    }
     renderQueue();
   }
 </script>
