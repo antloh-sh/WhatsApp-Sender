@@ -126,7 +126,6 @@
       background: #f3f4f6;
       min-height: 80px;
       line-height: 1.4;
-      white-space: normal;
     }
 
     .preview strong { font-weight: 600; }
@@ -174,13 +173,12 @@
 
 <main>
 
-  <!-- Upload CSV -->
   <div class="card">
     <h2>1. Upload CSV</h2>
     <input type="file" id="csvFile" accept=".csv" />
     <div class="hint">
       Required headers (case-sensitive): <strong>Name</strong>, <strong>ContactNumber</strong><br>
-      • ContactNumber must include country code (no spaces, no + sign)
+      ContactNumber must include country code (numbers only)
     </div>
     <div class="example">Name,ContactNumber
 Anthony Loh,6591234567
@@ -188,20 +186,12 @@ Jane Tan,6588123456</div>
     <div id="csvStatus" class="hint"></div>
   </div>
 
-  <!-- Message Template -->
   <div class="card">
     <h2>2. Message Template</h2>
-    <textarea
-      id="template"
-      placeholder="Hi *{{Name}}* 🙂👍
-Your appointment is _confirmed_. 🎉"></textarea>
-    <div class="hint">
-      WhatsApp formatting supported: *bold*  _italic_  ~strike~<br>
-      Emojis are fully supported ✅
-    </div>
+    <textarea id="template" placeholder="Hi *{{Name}}* 😅🥳🙏🏻"></textarea>
+    <div class="hint">Supports WhatsApp formatting and emojis ✅</div>
   </div>
 
-  <!-- Queue + Preview -->
   <div class="grid">
     <div class="card">
       <h2>3. Contact Queue</h2>
@@ -213,24 +203,16 @@ Your appointment is _confirmed_. 🎉"></textarea>
       <div id="preview" class="preview"></div>
 
       <div class="buttons">
-        <button id="openBtn" class="primary" disabled>
-          Open in WhatsApp
-        </button>
-        <button id="sentBtn" disabled>
-          Mark as Sent
-        </button>
-        <button id="skipBtn" disabled>
-          Skip
-        </button>
+        <button id="openBtn" class="primary" disabled>Open in WhatsApp</button>
+        <button id="sentBtn" disabled>Mark as Sent</button>
+        <button id="skipBtn" disabled>Skip</button>
       </div>
     </div>
   </div>
 
 </main>
 
-<footer>
-  🔒 All processing happens in your browser. No data is stored or uploaded.
-</footer>
+<footer>🔒 All processing happens in your browser. No data is stored.</footer>
 
 <script>
   const csvFile = document.getElementById('csvFile');
@@ -299,13 +281,8 @@ Your appointment is _confirmed_. 🎉"></textarea>
     renderPreview();
   }
 
-  /* -------- Preview Formatting (HTML ONLY) -------- */
-
   function escapeHTML(str) {
-    return str
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
 
   function formatWhatsApp(text) {
@@ -319,35 +296,35 @@ Your appointment is _confirmed_. 🎉"></textarea>
   function renderPreview() {
     if (currentIndex < 0) return;
     const c = contacts[currentIndex];
-    const merged =
-      templateEl.value.replace(/{{Name}}/g, c.Name);
+    const merged = templateEl.value.replace(/{{Name}}/g, c.Name);
     previewEl.innerHTML = formatWhatsApp(merged);
   }
 
-  /* -------- WhatsApp Launch (RAW TEXT ONLY) -------- */
-
   openBtn.onclick = () => {
-    if (currentIndex < 0) return;
-  
     const c = contacts[currentIndex];
-  
-    const rawMessage =
-      templateEl.value.replace(/{{Name}}/g, c.Name);
-  
-    const encodedMessage =
-      encodeURIComponent(rawMessage);
-  
+    const rawMessage = templateEl.value.replace(/{{Name}}/g, c.Name);
+    const encodedMessage = encodeURIComponent(rawMessage);
+
     const url =
-      `https://api.whatsapp.com/send` +
-      `?phone=${c.ContactNumber}` +
-      `&text=${encodedMessage}` +
-      `&app_absent=0`;
-  
+      `https://api.whatsapp.com/send?phone=${c.ContactNumber}` +
+      `&text=${encodedMessage}&app_absent=0`;
+
     window.open(url, '_blank');
-  
     c._status = 'opened';
     renderQueue();
   };
+
+  sentBtn.onclick = () => markAndMove('sent');
+  skipBtn.onclick = () => markAndMove('pending');
+
+  function markAndMove(status) {
+    contacts[currentIndex]._status = status;
+    if (currentIndex + 1 < contacts.length) {
+      selectContact(currentIndex + 1);
+    }
+    renderQueue();
+  }
 </script>
+
 </body>
 </html>
