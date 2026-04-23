@@ -14,6 +14,7 @@
       --muted: #6b7280;
       --primary: #10b981;
       --blue: #3b82f6;
+      --red: #ef4444;
     }
 
     * { box-sizing: border-box; }
@@ -105,7 +106,7 @@
     .filters {
       display: flex;
       gap: 12px;
-      font-size: 13px;
+      font-size: 12px;
     }
 
     .filters label {
@@ -114,10 +115,16 @@
       gap: 4px;
       cursor: pointer;
       user-select: none;
+      white-space: nowrap;
+    }
+
+    .count-pill {
+      font-weight: 600;
+      opacity: 0.7;
     }
 
     .queue {
-      max-height: 360px;
+      max-height: 400px;
       overflow-y: auto;
       border: 1px solid var(--border);
       border-radius: 8px;
@@ -139,10 +146,11 @@
     .contact .name { font-weight: 500; }
     .contact .number { font-size: 12px; color: var(--muted); }
 
-    .status { font-size: 12px; margin-top: 4px; text-transform: capitalize; }
+    .status { font-size: 10px; font-weight: 700; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
     .status.pending { color: var(--muted); }
     .status.opened { color: var(--blue); }
     .status.sent { color: var(--primary); }
+    .status.invalid { color: var(--red); }
 
     .preview {
       border: 1px dashed var(--border);
@@ -171,12 +179,22 @@
       border: 1px solid var(--border);
       background: white;
       cursor: pointer;
+      transition: all 0.2s;
     }
 
     button.primary {
       background: var(--primary);
       color: white;
       border: none;
+    }
+
+    button.danger {
+      color: var(--red);
+      border-color: var(--red);
+    }
+
+    button.danger:hover {
+      background: #fef2f2;
     }
 
     button:disabled {
@@ -201,19 +219,12 @@
   <div class="card">
     <h2>1. Upload CSV</h2>
     <input type="file" id="csvFile" accept=".csv" style="margin-top:8px;" />
-    <div class="hint">
-      Required headers: <strong>Name</strong>, <strong>ContactNumber</strong> (include country code)
-    </div>
-    <div class="example">Name,ContactNumber
-Anthony Loh,6591234567
-Jane Tan,6588123456</div>
-    <div id="csvStatus" class="hint"></div>
+    <div id="csvStatus" class="hint">Please upload a file to begin.</div>
   </div>
 
   <div class="card">
     <h2>2. Message Template</h2>
-    <textarea id="template" placeholder="Hi *{{Name}}* 😅🥳🙏🏻"></textarea>
-    <div class="hint">Supports WhatsApp formatting and emojis ✅</div>
+    <textarea id="template" placeholder="Hi *{{Name}}* 😅"></textarea>
   </div>
 
   <div class="grid">
@@ -221,9 +232,10 @@ Jane Tan,6588123456</div>
       <div class="queue-header">
         <h2>3. Contact Queue</h2>
         <div class="filters">
-          <label><input type="checkbox" class="filter-chk" value="pending" checked> Pending</label>
-          <label><input type="checkbox" class="filter-chk" value="opened" checked> Opened</label>
-          <label><input type="checkbox" class="filter-chk" value="sent" checked> Sent</label>
+          <label><input type="checkbox" class="filter-chk" value="pending" checked> Pend (<span id="cnt-pending">0</span>)</label>
+          <label><input type="checkbox" class="filter-chk" value="opened" checked> Open (<span id="cnt-opened">0</span>)</label>
+          <label><input type="checkbox" class="filter-chk" value="sent" checked> Sent (<span id="cnt-sent">0</span>)</label>
+          <label><input type="checkbox" class="filter-chk" value="invalid" checked> Inv (<span id="cnt-invalid">0</span>)</label>
         </div>
       </div>
       <div id="queue" class="queue"></div>
@@ -236,6 +248,7 @@ Jane Tan,6588123456</div>
       <div class="buttons">
         <button id="openBtn" class="primary" disabled>Open in WhatsApp</button>
         <button id="sentBtn" disabled>Mark as Sent</button>
+        <button id="invalidBtn" class="danger" disabled>Mark Invalid</button>
         <button id="skipBtn" disabled>Skip</button>
       </div>
     </div>
@@ -243,7 +256,7 @@ Jane Tan,6588123456</div>
 
 </main>
 
-<footer>🔒 All processing happens in your browser. No data is stored.</footer>
+<footer>🔒 No data is stored or uploaded to any server.</footer>
 
 <script>
   const csvFile = document.getElementById('csvFile');
@@ -251,6 +264,7 @@ Jane Tan,6588123456</div>
   const previewEl = document.getElementById('preview');
   const openBtn = document.getElementById('openBtn');
   const sentBtn = document.getElementById('sentBtn');
+  const invalidBtn = document.getElementById('invalidBtn');
   const skipBtn = document.getElementById('skipBtn');
   const templateEl = document.getElementById('template');
   const csvStatus = document.getElementById('csvStatus');
@@ -295,13 +309,23 @@ Jane Tan,6588123456</div>
     renderQueue();
   }
 
+  function updateCounts() {
+    const counts = { pending: 0, opened: 0, sent: 0, invalid: 0 };
+    contacts.forEach(c => counts[c._status]++);
+    for (const key in counts) {
+      document.getElementById(`cnt-${key}`).textContent = counts[key];
+    }
+  }
+
   function renderQueue() {
+    updateCounts();
     queueEl.innerHTML = '';
     const activeFilters = Array.from(filterChks)
                                .filter(chk => chk.checked)
                                .map(chk => chk.value);
 
     contacts.forEach((c, i) => {
+      // Logic: Only show if the status is currently checked in filters
       if (activeFilters.includes(c._status)) {
         const div = document.createElement('div');
         div.className = 'contact' + (i === currentIndex ? ' active' : '');
@@ -315,7 +339,6 @@ Jane Tan,6588123456</div>
       }
     });
 
-    // Check if current contact is hidden
     if (currentIndex >= 0 && !activeFilters.includes(contacts[currentIndex]._status)) {
         previewEl.innerHTML = '<div style="color:var(--muted); font-style:italic; padding:10px; text-align:center;">Selected contact is hidden by filters.</div>';
     } else if (currentIndex >= 0) {
@@ -325,7 +348,7 @@ Jane Tan,6588123456</div>
 
   function selectContact(index) {
     currentIndex = index;
-    openBtn.disabled = sentBtn.disabled = skipBtn.disabled = false;
+    openBtn.disabled = sentBtn.disabled = invalidBtn.disabled = skipBtn.disabled = false;
     renderQueue();
     renderPreview();
   }
@@ -353,26 +376,19 @@ Jane Tan,6588123456</div>
     const c = contacts[currentIndex];
     const rawMessage = templateEl.value.replace(/{{Name}}/g, c.Name);
     const encodedMessage = encodeURIComponent(rawMessage);
-
-    const url =
-      `https://api.whatsapp.com/send?phone=${c.ContactNumber}` +
-      `&text=${encodedMessage}&app_absent=0`;
-
+    const url = `https://api.whatsapp.com/send?phone=${c.ContactNumber}&text=${encodedMessage}&app_absent=0`;
     window.open(url, '_blank');
     c._status = 'opened';
     renderQueue();
   };
 
   sentBtn.onclick = () => markAndMove('sent');
+  invalidBtn.onclick = () => markAndMove('invalid');
   skipBtn.onclick = () => markAndMove('pending');
 
   function markAndMove(status) {
     contacts[currentIndex]._status = status;
-    
-    // Find next contact that isn't hidden by filters
-    const activeFilters = Array.from(filterChks)
-                               .filter(chk => chk.checked)
-                               .map(chk => chk.value);
+    const activeFilters = Array.from(filterChks).filter(chk => chk.checked).map(chk => chk.value);
     
     let nextIdx = currentIndex + 1;
     while (nextIdx < contacts.length && !activeFilters.includes(contacts[nextIdx]._status)) {
@@ -382,7 +398,7 @@ Jane Tan,6588123456</div>
     if (nextIdx < contacts.length) {
         selectContact(nextIdx);
     } else {
-        renderQueue(); // Just refresh if no next visible contact
+        renderQueue();
     }
   }
 </script>
