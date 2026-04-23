@@ -50,13 +50,14 @@
 
     .card h2 {
       font-size: 15px;
-      margin: 0 0 8px 0;
+      margin: 0;
     }
 
     .hint {
       font-size: 12px;
       color: var(--muted);
       line-height: 1.4;
+      margin-top: 8px;
     }
 
     .example {
@@ -79,6 +80,7 @@
       border: 1px solid var(--border);
       font-family: inherit;
       font-size: 14px;
+      margin-top: 8px;
     }
 
     .grid {
@@ -89,6 +91,29 @@
 
     @media (max-width: 800px) {
       .grid { grid-template-columns: 1fr; }
+    }
+
+    .queue-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .filters {
+      display: flex;
+      gap: 12px;
+      font-size: 13px;
+    }
+
+    .filters label {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      user-select: none;
     }
 
     .queue {
@@ -114,7 +139,7 @@
     .contact .name { font-weight: 500; }
     .contact .number { font-size: 12px; color: var(--muted); }
 
-    .status { font-size: 12px; margin-top: 4px; }
+    .status { font-size: 12px; margin-top: 4px; text-transform: capitalize; }
     .status.pending { color: var(--muted); }
     .status.opened { color: var(--blue); }
     .status.sent { color: var(--primary); }
@@ -175,10 +200,9 @@
 
   <div class="card">
     <h2>1. Upload CSV</h2>
-    <input type="file" id="csvFile" accept=".csv" />
+    <input type="file" id="csvFile" accept=".csv" style="margin-top:8px;" />
     <div class="hint">
-      Required headers (case-sensitive): <strong>Name</strong>, <strong>ContactNumber</strong><br>
-      ContactNumber must include country code (numbers only)
+      Required headers: <strong>Name</strong>, <strong>ContactNumber</strong> (include country code)
     </div>
     <div class="example">Name,ContactNumber
 Anthony Loh,6591234567
@@ -194,13 +218,20 @@ Jane Tan,6588123456</div>
 
   <div class="grid">
     <div class="card">
-      <h2>3. Contact Queue</h2>
+      <div class="queue-header">
+        <h2>3. Contact Queue</h2>
+        <div class="filters">
+          <label><input type="checkbox" class="filter-chk" value="pending" checked> Pending</label>
+          <label><input type="checkbox" class="filter-chk" value="opened" checked> Opened</label>
+          <label><input type="checkbox" class="filter-chk" value="sent" checked> Sent</label>
+        </div>
+      </div>
       <div id="queue" class="queue"></div>
     </div>
 
     <div class="card">
       <h2>Message Preview</h2>
-      <div id="preview" class="preview"></div>
+      <div id="preview" class="preview" style="margin-top:8px;"></div>
 
       <div class="buttons">
         <button id="openBtn" class="primary" disabled>Open in WhatsApp</button>
@@ -223,6 +254,7 @@ Jane Tan,6588123456</div>
   const skipBtn = document.getElementById('skipBtn');
   const templateEl = document.getElementById('template');
   const csvStatus = document.getElementById('csvStatus');
+  const filterChks = document.querySelectorAll('.filter-chk');
 
   let contacts = [];
   let currentIndex = -1;
@@ -236,6 +268,10 @@ Jane Tan,6588123456</div>
   });
 
   templateEl.addEventListener('input', renderPreview);
+  
+  filterChks.forEach(chk => {
+    chk.addEventListener('change', renderQueue);
+  });
 
   function parseCSV(text) {
     const lines = text.trim().split(/\r?\n/);
@@ -261,17 +297,30 @@ Jane Tan,6588123456</div>
 
   function renderQueue() {
     queueEl.innerHTML = '';
+    const activeFilters = Array.from(filterChks)
+                               .filter(chk => chk.checked)
+                               .map(chk => chk.value);
+
     contacts.forEach((c, i) => {
-      const div = document.createElement('div');
-      div.className = 'contact' + (i === currentIndex ? ' active' : '');
-      div.innerHTML = `
-        <div class="name">${c.Name}</div>
-        <div class="number">+${c.ContactNumber}</div>
-        <div class="status ${c._status}">${c._status}</div>
-      `;
-      div.onclick = () => selectContact(i);
-      queueEl.appendChild(div);
+      if (activeFilters.includes(c._status)) {
+        const div = document.createElement('div');
+        div.className = 'contact' + (i === currentIndex ? ' active' : '');
+        div.innerHTML = `
+          <div class="name">${c.Name}</div>
+          <div class="number">+${c.ContactNumber}</div>
+          <div class="status ${c._status}">${c._status}</div>
+        `;
+        div.onclick = () => selectContact(i);
+        queueEl.appendChild(div);
+      }
     });
+
+    // Check if current contact is hidden
+    if (currentIndex >= 0 && !activeFilters.includes(contacts[currentIndex]._status)) {
+        previewEl.innerHTML = '<div style="color:var(--muted); font-style:italic; padding:10px; text-align:center;">Selected contact is hidden by filters.</div>';
+    } else if (currentIndex >= 0) {
+        renderPreview();
+    }
   }
 
   function selectContact(index) {
@@ -319,10 +368,22 @@ Jane Tan,6588123456</div>
 
   function markAndMove(status) {
     contacts[currentIndex]._status = status;
-    if (currentIndex + 1 < contacts.length) {
-      selectContact(currentIndex + 1);
+    
+    // Find next contact that isn't hidden by filters
+    const activeFilters = Array.from(filterChks)
+                               .filter(chk => chk.checked)
+                               .map(chk => chk.value);
+    
+    let nextIdx = currentIndex + 1;
+    while (nextIdx < contacts.length && !activeFilters.includes(contacts[nextIdx]._status)) {
+        nextIdx++;
     }
-    renderQueue();
+
+    if (nextIdx < contacts.length) {
+        selectContact(nextIdx);
+    } else {
+        renderQueue(); // Just refresh if no next visible contact
+    }
   }
 </script>
 
