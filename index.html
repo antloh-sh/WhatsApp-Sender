@@ -70,13 +70,14 @@
       font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
       font-size: 12px;
       white-space: pre;
+      overflow-x: auto;
     }
 
     textarea {
       width: 100%;
-      min-height: 80px;
+      min-height: 100px;
       resize: vertical;
-      padding: 8px;
+      padding: 10px;
       border-radius: 8px;
       border: 1px solid var(--border);
       font-family: inherit;
@@ -118,11 +119,6 @@
       white-space: nowrap;
     }
 
-    .count-pill {
-      font-weight: 600;
-      opacity: 0.7;
-    }
-
     .queue {
       max-height: 400px;
       overflow-y: auto;
@@ -157,8 +153,9 @@
       border-radius: 8px;
       padding: 12px;
       background: #f3f4f6;
-      min-height: 80px;
+      min-height: 100px;
       line-height: 1.4;
+      white-space: pre-wrap;
     }
 
     .preview strong { font-weight: 600; }
@@ -219,12 +216,19 @@
   <div class="card">
     <h2>1. Upload CSV</h2>
     <input type="file" id="csvFile" accept=".csv" style="margin-top:8px;" />
+    <div class="hint">
+      Headers: <strong>Name</strong>, <strong>ContactNumber</strong>, <strong>Field1</strong>, <strong>Field2</strong>, <strong>Field3</strong>
+    </div>
+    <div class="example">Name,ContactNumber,Field1,Field2,Field3
+Anthony Loh,6591234567,Zumba,10am,Sheng Hong AAC
+Jane Tan,6588123456,Art Class,2pm,Neighbour Ring</div>
     <div id="csvStatus" class="hint">Please upload a file to begin.</div>
   </div>
 
   <div class="card">
     <h2>2. Message Template</h2>
-    <textarea id="template" placeholder="Hi *{{Name}}* 😅"></textarea>
+    <textarea id="template" placeholder="Hi *{{Name}}*! Your {{Field1}} workshop is at {{Field2}} at {{Field3}}."></textarea>
+    <div class="hint">Use {{Name}}, {{Field1}}, {{Field2}}, or {{Field3}} as placeholders.</div>
   </div>
 
   <div class="grid">
@@ -232,10 +236,10 @@
       <div class="queue-header">
         <h2>3. Contact Queue</h2>
         <div class="filters">
-          <label><input type="checkbox" class="filter-chk" value="pending" checked> Pend (<span id="cnt-pending">0</span>)</label>
-          <label><input type="checkbox" class="filter-chk" value="opened" checked> Open (<span id="cnt-opened">0</span>)</label>
-          <label><input type="checkbox" class="filter-chk" value="sent"> Sent (<span id="cnt-sent">0</span>)</label>
-          <label><input type="checkbox" class="filter-chk" value="invalid"> Inv (<span id="cnt-invalid">0</span>)</label>
+          <label><input type="checkbox" id="f-pending" class="filter-chk" value="pending" checked> Pend (<span id="cnt-pending">0</span>)</label>
+          <label><input type="checkbox" id="f-opened" class="filter-chk" value="opened" checked> Open (<span id="cnt-opened">0</span>)</label>
+          <label><input type="checkbox" id="f-sent" class="filter-chk" value="sent"> Sent (<span id="cnt-sent">0</span>)</label>
+          <label><input type="checkbox" id="f-invalid" class="filter-chk" value="invalid"> Inv (<span id="cnt-invalid">0</span>)</label>
         </div>
       </div>
       <div id="queue" class="queue"></div>
@@ -289,10 +293,12 @@
 
   function parseCSV(text) {
     const lines = text.trim().split(/\r?\n/);
+    if (lines.length === 0) return;
+
     const headers = lines.shift().split(',').map(h => h.trim());
 
     if (!headers.includes('Name') || !headers.includes('ContactNumber')) {
-      csvStatus.textContent = '❌ Invalid CSV headers';
+      csvStatus.textContent = '❌ Invalid CSV headers. "Name" and "ContactNumber" required.';
       return;
     }
 
@@ -325,7 +331,6 @@
                                .map(chk => chk.value);
 
     contacts.forEach((c, i) => {
-      // Logic: Only show if the status is currently checked in filters
       if (activeFilters.includes(c._status)) {
         const div = document.createElement('div');
         div.className = 'contact' + (i === currentIndex ? ' active' : '');
@@ -362,19 +367,28 @@
     safe = safe.replace(/\*(.*?)\*/g, '<strong>$1</strong>');
     safe = safe.replace(/_(.*?)_/g, '<em>$1</em>');
     safe = safe.replace(/~(.*?)~/g, '<del>$1</del>');
-    return safe.replace(/\n/g, '<br>');
+    return safe;
+  }
+
+  function getMergedMessage(contact) {
+    let msg = templateEl.value;
+    msg = msg.replace(/{{Name}}/g, contact.Name || '');
+    msg = msg.replace(/{{Field1}}/g, contact.Field1 || '');
+    msg = msg.replace(/{{Field2}}/g, contact.Field2 || '');
+    msg = msg.replace(/{{Field3}}/g, contact.Field3 || '');
+    return msg;
   }
 
   function renderPreview() {
     if (currentIndex < 0) return;
     const c = contacts[currentIndex];
-    const merged = templateEl.value.replace(/{{Name}}/g, c.Name);
+    const merged = getMergedMessage(c);
     previewEl.innerHTML = formatWhatsApp(merged);
   }
 
   openBtn.onclick = () => {
     const c = contacts[currentIndex];
-    const rawMessage = templateEl.value.replace(/{{Name}}/g, c.Name);
+    const rawMessage = getMergedMessage(c);
     const encodedMessage = encodeURIComponent(rawMessage);
     const url = `https://api.whatsapp.com/send?phone=${c.ContactNumber}&text=${encodedMessage}&app_absent=0`;
     window.open(url, '_blank');
