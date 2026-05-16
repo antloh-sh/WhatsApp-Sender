@@ -4,38 +4,171 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>WhatsApp Queue Sender</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 
   <style>
     :root {
-      --bg: #f9fafb;
+      --bg: #f4f6f4;
       --card: #ffffff;
-      --border: #e5e7eb;
-      --text: #111827;
-      --muted: #6b7280;
-      --primary: #10b981;
-      --blue: #3b82f6;
-      --red: #ef4444;
+      --border: #d9e0d9;
+      --text: #111811;
+      --muted: #6b7a6b;
+      --primary: #128c4a;
+      --primary-light: #e6f5ed;
+      --primary-hover: #0f7340;
+      --blue: #2563eb;
+      --blue-light: #eff6ff;
+      --red: #dc2626;
+      --red-light: #fef2f2;
+      --amber: #d97706;
+      --amber-light: #fffbeb;
+      --radius: 10px;
+      --shadow: 0 1px 4px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.04);
     }
 
-    * { box-sizing: border-box; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      margin: 0;
-      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-family: 'IBM Plex Sans', system-ui, sans-serif;
       background: var(--bg);
       color: var(--text);
+      min-height: 100vh;
     }
 
     header {
-      padding: 16px 24px;
-      font-size: 20px;
-      font-weight: 600;
-      border-bottom: 1px solid var(--border);
+      padding: 14px 24px;
       background: var(--card);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
     }
 
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .header-logo {
+      width: 32px;
+      height: 32px;
+      background: var(--primary);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    header h1 {
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .save-badge {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      color: var(--primary);
+      background: var(--primary-light);
+      border: 1px solid #b6dfc8;
+      border-radius: 20px;
+      padding: 3px 10px;
+      display: none;
+      align-items: center;
+      gap: 5px;
+      white-space: nowrap;
+    }
+
+    .save-badge.visible { display: flex; }
+
+    .save-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--primary);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .btn-reset {
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-size: 13px;
+      padding: 6px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: white;
+      color: var(--red);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.15s, border-color 0.15s;
+      font-weight: 500;
+    }
+
+    .btn-reset:hover { background: var(--red-light); border-color: #fca5a5; }
+
+    /* Restore banner */
+    #restoreBanner {
+      background: var(--amber-light);
+      border-bottom: 1px solid #fde68a;
+      padding: 10px 24px;
+      display: none;
+      align-items: center;
+      gap: 12px;
+      font-size: 13px;
+    }
+
+    #restoreBanner.visible { display: flex; }
+
+    .restore-icon { font-size: 16px; flex-shrink: 0; }
+
+    .restore-text { flex: 1; color: #92400e; }
+    .restore-text strong { font-weight: 600; }
+
+    .restore-actions { display: flex; gap: 8px; }
+
+    .btn-restore, .btn-discard {
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 5px 12px;
+      border-radius: 7px;
+      border: none;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+
+    .btn-restore {
+      background: var(--amber);
+      color: white;
+    }
+
+    .btn-discard {
+      background: transparent;
+      border: 1px solid #d97706;
+      color: var(--amber);
+    }
+
+    .btn-restore:hover, .btn-discard:hover { opacity: 0.85; }
+
     main {
-      padding: 24px;
+      padding: 20px 24px;
       max-width: 1100px;
       margin: 0 auto;
     }
@@ -43,47 +176,78 @@
     .card {
       background: var(--card);
       border: 1px solid var(--border);
-      border-radius: 12px;
+      border-radius: var(--radius);
       padding: 16px;
       margin-bottom: 16px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+      box-shadow: var(--shadow);
     }
 
-    .card h2 {
-      font-size: 15px;
-      margin: 0;
+    .card-title {
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      margin-bottom: 10px;
     }
 
     .hint {
       font-size: 12px;
       color: var(--muted);
-      line-height: 1.4;
-      margin-top: 8px;
+      line-height: 1.5;
+      margin-top: 6px;
     }
 
     .example {
       margin-top: 8px;
-      background: #f3f4f6;
-      border: 1px dashed var(--border);
+      background: #f8faf8;
+      border: 1px solid var(--border);
       border-radius: 8px;
-      padding: 8px;
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-      font-size: 12px;
+      padding: 8px 10px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11.5px;
       white-space: pre;
       overflow-x: auto;
+      color: #374137;
+    }
+
+    .upload-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 8px;
+      flex-wrap: wrap;
+    }
+
+    input[type="file"] {
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    #csvStatus {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 8px;
     }
 
     textarea {
       width: 100%;
-      min-height: 100px;
+      min-height: 90px;
       resize: vertical;
-      padding: 10px;
+      padding: 10px 12px;
       border-radius: 8px;
       border: 1px solid var(--border);
-      font-family: inherit;
+      font-family: 'IBM Plex Sans', sans-serif;
       font-size: 14px;
-      margin-top: 8px;
+      margin-top: 6px;
+      background: #fafcfa;
+      color: var(--text);
+      transition: border-color 0.15s;
+      outline: none;
     }
+
+    textarea:focus { border-color: var(--primary); background: white; }
 
     .grid {
       display: grid;
@@ -93,69 +257,109 @@
 
     @media (max-width: 800px) {
       .grid { grid-template-columns: 1fr; }
+      header { flex-wrap: wrap; }
     }
 
+    /* Queue */
     .queue-header {
       display: flex;
       justify-content: space-between;
-      align-items: center;
-      margin-bottom: 12px;
+      align-items: flex-start;
+      margin-bottom: 10px;
       flex-wrap: wrap;
       gap: 8px;
     }
 
     .filters {
       display: flex;
-      gap: 12px;
-      font-size: 12px;
+      gap: 6px;
+      flex-wrap: wrap;
     }
 
-    .filters label {
+    .filter-chip {
       display: flex;
       align-items: center;
-      gap: 4px;
+      gap: 5px;
+      font-size: 11.5px;
+      font-weight: 500;
+      padding: 3px 9px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
       cursor: pointer;
       user-select: none;
+      transition: background 0.15s, border-color 0.15s;
       white-space: nowrap;
     }
 
+    .filter-chip input { display: none; }
+
+    .filter-chip.pending   { color: var(--muted); }
+    .filter-chip.opened    { color: var(--blue); }
+    .filter-chip.sent      { color: var(--primary); }
+    .filter-chip.invalid   { color: var(--red); }
+
+    .filter-chip.pending.active   { background: #f3f4f6; border-color: #9ca3af; }
+    .filter-chip.opened.active    { background: var(--blue-light); border-color: #93c5fd; }
+    .filter-chip.sent.active      { background: var(--primary-light); border-color: #86efac; }
+    .filter-chip.invalid.active   { background: var(--red-light); border-color: #fca5a5; }
+
     .queue {
-      max-height: 400px;
+      max-height: 360px;
       overflow-y: auto;
       border: 1px solid var(--border);
       border-radius: 8px;
     }
 
+    .queue::-webkit-scrollbar { width: 4px; }
+    .queue::-webkit-scrollbar-track { background: transparent; }
+    .queue::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
     .contact {
-      padding: 10px;
+      padding: 10px 12px;
       border-bottom: 1px solid var(--border);
       cursor: pointer;
+      transition: background 0.1s;
     }
 
     .contact:last-child { border-bottom: none; }
+    .contact:hover { background: #f8faf8; }
 
     .contact.active {
-      background: #ecfdf5;
-      border-left: 4px solid var(--primary);
+      background: var(--primary-light);
+      border-left: 3px solid var(--primary);
+      padding-left: 9px;
     }
 
-    .contact .name { font-weight: 500; }
-    .contact .number { font-size: 12px; color: var(--muted); }
+    .contact .name { font-size: 13px; font-weight: 500; }
+    .contact .number { font-size: 11px; color: var(--muted); font-family: 'IBM Plex Mono', monospace; margin-top: 1px; }
 
-    .status { font-size: 10px; font-weight: 700; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
-    .status.pending { color: var(--muted); }
-    .status.opened { color: var(--blue); }
-    .status.sent { color: var(--primary); }
-    .status.invalid { color: var(--red); }
+    .status-tag {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 600;
+      margin-top: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 1px 6px;
+      border-radius: 4px;
+    }
 
+    .status-tag.pending { color: var(--muted); background: #f3f4f6; }
+    .status-tag.opened  { color: var(--blue); background: var(--blue-light); }
+    .status-tag.sent    { color: var(--primary); background: var(--primary-light); }
+    .status-tag.invalid { color: var(--red); background: var(--red-light); }
+
+    /* Preview */
     .preview {
-      border: 1px dashed var(--border);
+      border: 1px solid var(--border);
       border-radius: 8px;
-      padding: 12px;
-      background: #f3f4f6;
+      padding: 12px 14px;
+      background: #f8faf8;
       min-height: 100px;
-      line-height: 1.4;
+      line-height: 1.55;
       white-space: pre-wrap;
+      font-size: 14px;
+      margin-top: 6px;
     }
 
     .preview strong { font-weight: 600; }
@@ -170,13 +374,16 @@
     }
 
     button {
-      padding: 10px 14px;
-      font-size: 14px;
+      font-family: 'IBM Plex Sans', sans-serif;
+      padding: 9px 14px;
+      font-size: 13px;
+      font-weight: 500;
       border-radius: 8px;
       border: 1px solid var(--border);
       background: white;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all 0.15s;
+      color: var(--text);
     }
 
     button.primary {
@@ -185,97 +392,313 @@
       border: none;
     }
 
+    button.primary:hover { background: var(--primary-hover); }
+
     button.danger {
       color: var(--red);
-      border-color: var(--red);
+      border-color: #fca5a5;
     }
 
-    button.danger:hover {
-      background: #fef2f2;
+    button.danger:hover { background: var(--red-light); }
+
+    button:not(.primary):not(.danger):not(.btn-reset):not(.btn-restore):not(.btn-discard):hover {
+      background: #f3f4f6;
     }
 
     button:disabled {
-      opacity: 0.5;
+      opacity: 0.4;
       cursor: not-allowed;
+      pointer-events: none;
+    }
+
+    .empty-queue {
+      padding: 24px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
     }
 
     footer {
-      padding: 12px;
+      padding: 14px;
       text-align: center;
       font-size: 12px;
       color: var(--muted);
+      font-family: 'IBM Plex Mono', monospace;
     }
+
+    /* Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.35);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-overlay.visible { display: flex; }
+
+    .modal {
+      background: white;
+      border-radius: 14px;
+      padding: 24px;
+      max-width: 380px;
+      width: 90%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    }
+
+    .modal h3 { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+    .modal p { font-size: 13px; color: var(--muted); line-height: 1.5; margin-bottom: 20px; }
+
+    .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+    .modal-actions .btn-cancel {
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: white;
+      cursor: pointer;
+    }
+
+    .modal-actions .btn-confirm-reset {
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: none;
+      background: var(--red);
+      color: white;
+      cursor: pointer;
+    }
+
+    .modal-actions .btn-cancel:hover { background: #f3f4f6; }
+    .modal-actions .btn-confirm-reset:hover { background: #b91c1c; }
   </style>
 </head>
 
 <body>
-<header>WhatsApp Queue Sender</header>
+
+<header>
+  <div class="header-left">
+    <div class="header-logo">💬</div>
+    <h1>WhatsApp Queue Sender</h1>
+  </div>
+  <div class="header-right">
+    <div class="save-badge" id="saveBadge">
+      <span class="save-dot"></span> Session saved
+    </div>
+    <button class="btn-reset" id="resetBtn" onclick="confirmReset()">
+      ↺ Reset &amp; Clear
+    </button>
+  </div>
+</header>
+
+<!-- Restore banner -->
+<div id="restoreBanner">
+  <span class="restore-icon">🔄</span>
+  <span class="restore-text" id="restoreText"></span>
+  <div class="restore-actions">
+    <button class="btn-restore" onclick="restoreSession()">Restore Session</button>
+    <button class="btn-discard" onclick="discardSession()">Start Fresh</button>
+  </div>
+</div>
 
 <main>
 
   <div class="card">
-    <h2>1. Upload CSV</h2>
-    <input type="file" id="csvFile" accept=".csv" style="margin-top:8px;" />
+    <div class="card-title">1 · Upload CSV</div>
+    <div class="upload-row">
+      <input type="file" id="csvFile" accept=".csv" />
+    </div>
     <div class="hint">
-      Headers: <strong>Name</strong>, <strong>ContactNumber</strong>, <strong>Field1</strong>, <strong>Field2</strong>, <strong>Field3</strong>
+      Required headers: <strong>Name</strong>, <strong>ContactNumber</strong> &nbsp;·&nbsp; Optional: <strong>Field1</strong>, <strong>Field2</strong>, <strong>Field3</strong>
     </div>
     <div class="example">Name,ContactNumber,Field1,Field2,Field3
 Anthony Loh,6591234567,Zumba,10am,Sheng Hong AAC
 Jane Tan,6588123456,Art Class,2pm,Neighbour Ring</div>
-    <div id="csvStatus" class="hint">Please upload a file to begin.</div>
+    <div id="csvStatus" class="hint" style="margin-top:8px;">Please upload a file to begin.</div>
   </div>
 
   <div class="card">
-    <h2>2. Message Template</h2>
+    <div class="card-title">2 · Message Template</div>
     <textarea id="template" placeholder="Hi *{{Name}}*! Your {{Field1}} workshop is at {{Field2}} at {{Field3}}."></textarea>
-    <div class="hint">Use {{Name}}, {{Field1}}, {{Field2}}, or {{Field3}} as placeholders.</div>
+    <div class="hint">Placeholders: <code>{{Name}}</code> &nbsp;<code>{{Field1}}</code> &nbsp;<code>{{Field2}}</code> &nbsp;<code>{{Field3}}</code> &nbsp;· Use <code>*bold*</code> <code>_italic_</code> <code>~strike~</code></div>
   </div>
 
   <div class="grid">
     <div class="card">
       <div class="queue-header">
-        <h2>3. Contact Queue</h2>
-        <div class="filters">
-          <label><input type="checkbox" id="f-pending" class="filter-chk" value="pending" checked> Pend (<span id="cnt-pending">0</span>)</label>
-          <label><input type="checkbox" id="f-opened" class="filter-chk" value="opened" checked> Open (<span id="cnt-opened">0</span>)</label>
-          <label><input type="checkbox" id="f-sent" class="filter-chk" value="sent"> Sent (<span id="cnt-sent">0</span>)</label>
-          <label><input type="checkbox" id="f-invalid" class="filter-chk" value="invalid"> Inv (<span id="cnt-invalid">0</span>)</label>
+        <div class="card-title" style="margin-bottom:0;">3 · Contact Queue</div>
+        <div class="filters" id="filterChips">
+          <label class="filter-chip pending active" id="chip-pending">
+            <input type="checkbox" class="filter-chk" value="pending" checked>
+            Pending <span id="cnt-pending">0</span>
+          </label>
+          <label class="filter-chip opened active" id="chip-opened">
+            <input type="checkbox" class="filter-chk" value="opened" checked>
+            Opened <span id="cnt-opened">0</span>
+          </label>
+          <label class="filter-chip sent" id="chip-sent">
+            <input type="checkbox" class="filter-chk" value="sent">
+            Sent <span id="cnt-sent">0</span>
+          </label>
+          <label class="filter-chip invalid" id="chip-invalid">
+            <input type="checkbox" class="filter-chk" value="invalid">
+            Invalid <span id="cnt-invalid">0</span>
+          </label>
         </div>
       </div>
-      <div id="queue" class="queue"></div>
+      <div id="queue" class="queue">
+        <div class="empty-queue">No contacts loaded.</div>
+      </div>
     </div>
 
     <div class="card">
-      <h2>Message Preview</h2>
-      <div id="preview" class="preview" style="margin-top:8px;"></div>
+      <div class="card-title">Message Preview</div>
+      <div id="preview" class="preview" style="color:var(--muted); font-style:italic;">Select a contact to preview the message.</div>
 
       <div class="buttons">
         <button id="openBtn" class="primary" disabled>Open in WhatsApp</button>
-        <button id="sentBtn" disabled>Mark as Sent</button>
-        <button id="invalidBtn" class="danger" disabled>Mark Invalid</button>
-        <button id="skipBtn" disabled>Skip</button>
+        <button id="sentBtn" disabled>✓ Mark Sent</button>
+        <button id="invalidBtn" class="danger" disabled>✗ Invalid</button>
+        <button id="skipBtn" disabled>→ Skip</button>
       </div>
     </div>
   </div>
 
 </main>
 
-<footer>🔒 No data is stored or uploaded to any server.</footer>
+<footer>🔒 All data stays in your browser — nothing is uploaded to any server.</footer>
+
+<!-- Reset confirmation modal -->
+<div class="modal-overlay" id="resetModal">
+  <div class="modal">
+    <h3>Reset session?</h3>
+    <p>This will clear all contacts, statuses, and your saved template from local storage. This cannot be undone.</p>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-confirm-reset" onclick="doReset()">Yes, reset everything</button>
+    </div>
+  </div>
+</div>
 
 <script>
-  const csvFile = document.getElementById('csvFile');
-  const queueEl = document.getElementById('queue');
-  const previewEl = document.getElementById('preview');
-  const openBtn = document.getElementById('openBtn');
-  const sentBtn = document.getElementById('sentBtn');
-  const invalidBtn = document.getElementById('invalidBtn');
-  const skipBtn = document.getElementById('skipBtn');
-  const templateEl = document.getElementById('template');
-  const csvStatus = document.getElementById('csvStatus');
-  const filterChks = document.querySelectorAll('.filter-chk');
+  const STORAGE_KEY = 'wq_session_v1';
+
+  // DOM refs
+  const csvFile     = document.getElementById('csvFile');
+  const queueEl    = document.getElementById('queue');
+  const previewEl   = document.getElementById('preview');
+  const openBtn     = document.getElementById('openBtn');
+  const sentBtn     = document.getElementById('sentBtn');
+  const invalidBtn  = document.getElementById('invalidBtn');
+  const skipBtn     = document.getElementById('skipBtn');
+  const templateEl  = document.getElementById('template');
+  const csvStatus   = document.getElementById('csvStatus');
+  const saveBadge   = document.getElementById('saveBadge');
+  const restoreBanner = document.getElementById('restoreBanner');
+  const filterChks  = document.querySelectorAll('.filter-chk');
 
   let contacts = [];
   let currentIndex = -1;
+
+  // ─── Persistence ────────────────────────────────────────────────────────────
+
+  function saveSession() {
+    const session = {
+      contacts,
+      currentIndex,
+      template: templateEl.value,
+      savedAt: Date.now()
+    };
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+      saveBadge.classList.add('visible');
+    } catch (e) {
+      // Storage full or unavailable – silently skip
+    }
+  }
+
+  function loadStoredSession() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  }
+
+  function applySession(session) {
+    contacts = session.contacts || [];
+    currentIndex = session.currentIndex ?? -1;
+    if (session.template) templateEl.value = session.template;
+
+    // Sync filter checkbox states from session if stored, else keep defaults
+    const savedFilters = session.activeFilters;
+    if (savedFilters) {
+      filterChks.forEach(chk => {
+        chk.checked = savedFilters.includes(chk.value);
+        updateChipStyle(chk);
+      });
+    }
+
+    csvStatus.textContent = `✅ Restored ${contacts.length} contacts`;
+    renderQueue();
+    if (currentIndex >= 0 && currentIndex < contacts.length) {
+      enableActionButtons();
+      renderPreview();
+    }
+    saveBadge.classList.add('visible');
+  }
+
+  function restoreSession() {
+    const session = loadStoredSession();
+    if (session) applySession(session);
+    restoreBanner.classList.remove('visible');
+  }
+
+  function discardSession() {
+    localStorage.removeItem(STORAGE_KEY);
+    restoreBanner.classList.remove('visible');
+    saveBadge.classList.remove('visible');
+  }
+
+  // On page load – check for saved session
+  window.addEventListener('load', () => {
+    const session = loadStoredSession();
+    if (session && session.contacts && session.contacts.length > 0) {
+      const d = new Date(session.savedAt);
+      const timeStr = d.toLocaleString();
+      const done = session.contacts.filter(c => c._status === 'sent' || c._status === 'invalid').length;
+      document.getElementById('restoreText').innerHTML =
+        `<strong>Previous session found</strong> — ${session.contacts.length} contacts, ${done} completed &nbsp;·&nbsp; Saved ${timeStr}`;
+      restoreBanner.classList.add('visible');
+    }
+  });
+
+  // ─── Filter chips ─────────────────────────────────────────────────────────
+
+  function updateChipStyle(chk) {
+    const chip = document.getElementById(`chip-${chk.value}`);
+    if (chk.checked) chip.classList.add('active');
+    else chip.classList.remove('active');
+  }
+
+  filterChks.forEach(chk => {
+    chk.addEventListener('change', () => {
+      updateChipStyle(chk);
+      renderQueue();
+      saveSession();
+    });
+  });
+
+  // ─── CSV Parsing ──────────────────────────────────────────────────────────
 
   csvFile.addEventListener('change', () => {
     const file = csvFile.files[0];
@@ -285,12 +708,6 @@ Jane Tan,6588123456,Art Class,2pm,Neighbour Ring</div>
     reader.readAsText(file);
   });
 
-  templateEl.addEventListener('input', renderPreview);
-  
-  filterChks.forEach(chk => {
-    chk.addEventListener('change', renderQueue);
-  });
-
   function parseCSV(text) {
     const lines = text.trim().split(/\r?\n/);
     if (lines.length === 0) return;
@@ -298,68 +715,98 @@ Jane Tan,6588123456,Art Class,2pm,Neighbour Ring</div>
     const headers = lines.shift().split(',').map(h => h.trim());
 
     if (!headers.includes('Name') || !headers.includes('ContactNumber')) {
-      csvStatus.textContent = '❌ Invalid CSV headers. "Name" and "ContactNumber" required.';
+      csvStatus.textContent = '❌ Invalid CSV: "Name" and "ContactNumber" columns required.';
       return;
     }
 
-    contacts = lines.map(line => {
-      const values = line.split(',');
-      const row = {};
-      headers.forEach((h, i) => row[h] = values[i]?.trim() || '');
-      row._status = 'pending';
-      return row;
-    });
+    contacts = lines
+      .filter(l => l.trim())
+      .map(line => {
+        const values = line.split(',');
+        const row = {};
+        headers.forEach((h, i) => row[h] = values[i]?.trim() || '');
+        row._status = 'pending';
+        return row;
+      });
 
     csvStatus.textContent = `✅ Loaded ${contacts.length} contacts`;
+    currentIndex = -1;
     selectContact(0);
     renderQueue();
+    saveSession();
   }
+
+  // ─── Counts ───────────────────────────────────────────────────────────────
 
   function updateCounts() {
     const counts = { pending: 0, opened: 0, sent: 0, invalid: 0 };
-    contacts.forEach(c => counts[c._status]++);
+    contacts.forEach(c => { if (counts[c._status] !== undefined) counts[c._status]++; });
     for (const key in counts) {
       document.getElementById(`cnt-${key}`).textContent = counts[key];
     }
   }
 
+  // ─── Queue Render ─────────────────────────────────────────────────────────
+
   function renderQueue() {
     updateCounts();
     queueEl.innerHTML = '';
+
     const activeFilters = Array.from(filterChks)
-                               .filter(chk => chk.checked)
-                               .map(chk => chk.value);
+      .filter(chk => chk.checked)
+      .map(chk => chk.value);
+
+    const visible = contacts.filter(c => activeFilters.includes(c._status));
+
+    if (visible.length === 0) {
+      queueEl.innerHTML = `<div class="empty-queue">${contacts.length === 0 ? 'No contacts loaded.' : 'No contacts match the active filters.'}</div>`;
+      return;
+    }
 
     contacts.forEach((c, i) => {
-      if (activeFilters.includes(c._status)) {
-        const div = document.createElement('div');
-        div.className = 'contact' + (i === currentIndex ? ' active' : '');
-        div.innerHTML = `
-          <div class="name">${c.Name}</div>
-          <div class="number">+${c.ContactNumber}</div>
-          <div class="status ${c._status}">${c._status}</div>
-        `;
-        div.onclick = () => selectContact(i);
-        queueEl.appendChild(div);
+      if (!activeFilters.includes(c._status)) return;
+      const div = document.createElement('div');
+      div.className = 'contact' + (i === currentIndex ? ' active' : '');
+      div.innerHTML = `
+        <div class="name">${escapeHTML(c.Name)}</div>
+        <div class="number">+${escapeHTML(c.ContactNumber)}</div>
+        <span class="status-tag ${c._status}">${c._status}</span>
+      `;
+      div.onclick = () => selectContact(i);
+      queueEl.appendChild(div);
+
+      // Scroll active contact into view
+      if (i === currentIndex) {
+        setTimeout(() => div.scrollIntoView({ block: 'nearest' }), 0);
       }
     });
 
-    if (currentIndex >= 0 && !activeFilters.includes(contacts[currentIndex]._status)) {
-        previewEl.innerHTML = '<div style="color:var(--muted); font-style:italic; padding:10px; text-align:center;">Selected contact is hidden by filters.</div>';
-    } else if (currentIndex >= 0) {
-        renderPreview();
-    }
+    const activeEl = queueEl.querySelector('.contact.active');
+    if (activeEl) activeEl.scrollIntoView({ block: 'nearest' });
   }
+
+  // ─── Select Contact ───────────────────────────────────────────────────────
 
   function selectContact(index) {
+    if (index < 0 || index >= contacts.length) return;
     currentIndex = index;
-    openBtn.disabled = sentBtn.disabled = invalidBtn.disabled = skipBtn.disabled = false;
+    enableActionButtons();
     renderQueue();
     renderPreview();
+    saveSession();
   }
 
+  function enableActionButtons() {
+    openBtn.disabled = sentBtn.disabled = invalidBtn.disabled = skipBtn.disabled = false;
+  }
+
+  // ─── Helpers ──────────────────────────────────────────────────────────────
+
   function escapeHTML(str) {
-    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
   }
 
   function formatWhatsApp(text) {
@@ -372,48 +819,88 @@ Jane Tan,6588123456,Art Class,2pm,Neighbour Ring</div>
 
   function getMergedMessage(contact) {
     let msg = templateEl.value;
-    msg = msg.replace(/{{Name}}/g, contact.Name || '');
+    msg = msg.replace(/{{Name}}/g,   contact.Name   || '');
     msg = msg.replace(/{{Field1}}/g, contact.Field1 || '');
     msg = msg.replace(/{{Field2}}/g, contact.Field2 || '');
     msg = msg.replace(/{{Field3}}/g, contact.Field3 || '');
     return msg;
   }
 
+  // ─── Preview ──────────────────────────────────────────────────────────────
+
+  templateEl.addEventListener('input', () => {
+    renderPreview();
+    saveSession();
+  });
+
   function renderPreview() {
-    if (currentIndex < 0) return;
-    const c = contacts[currentIndex];
-    const merged = getMergedMessage(c);
+    if (currentIndex < 0 || currentIndex >= contacts.length) {
+      previewEl.style.fontStyle = 'italic';
+      previewEl.style.color = 'var(--muted)';
+      previewEl.innerHTML = 'Select a contact to preview the message.';
+      return;
+    }
+    previewEl.style.fontStyle = 'normal';
+    previewEl.style.color = 'var(--text)';
+    const merged = getMergedMessage(contacts[currentIndex]);
     previewEl.innerHTML = formatWhatsApp(merged);
   }
 
+  // ─── Actions ──────────────────────────────────────────────────────────────
+
   openBtn.onclick = () => {
     const c = contacts[currentIndex];
-    const rawMessage = getMergedMessage(c);
-    const encodedMessage = encodeURIComponent(rawMessage);
-    const url = `https://api.whatsapp.com/send?phone=${c.ContactNumber}&text=${encodedMessage}&app_absent=0`;
+    const url = `https://api.whatsapp.com/send?phone=${c.ContactNumber}&text=${encodeURIComponent(getMergedMessage(c))}&app_absent=0`;
     window.open(url, '_blank');
     c._status = 'opened';
     renderQueue();
+    saveSession();
   };
 
-  sentBtn.onclick = () => markAndMove('sent');
-  invalidBtn.onclick = () => markAndMove('invalid');
-  skipBtn.onclick = () => markAndMove('pending');
+  sentBtn.onclick    = () => markAndAdvance('sent');
+  invalidBtn.onclick = () => markAndAdvance('invalid');
+  skipBtn.onclick    = () => markAndAdvance(null); // skip without changing status
 
-  function markAndMove(status) {
-    contacts[currentIndex]._status = status;
-    const activeFilters = Array.from(filterChks).filter(chk => chk.checked).map(chk => chk.value);
-    
+  function markAndAdvance(status) {
+    if (status !== null) contacts[currentIndex]._status = status;
+
+    const activeFilters = Array.from(filterChks)
+      .filter(chk => chk.checked)
+      .map(chk => chk.value);
+
+    // Find next visible contact after current
     let nextIdx = currentIndex + 1;
     while (nextIdx < contacts.length && !activeFilters.includes(contacts[nextIdx]._status)) {
-        nextIdx++;
+      nextIdx++;
     }
 
     if (nextIdx < contacts.length) {
-        selectContact(nextIdx);
+      selectContact(nextIdx);
     } else {
-        renderQueue();
+      currentIndex = -1; // no next contact in view
+      openBtn.disabled = sentBtn.disabled = invalidBtn.disabled = skipBtn.disabled = true;
+      renderQueue();
+      renderPreview();
     }
+
+    saveSession();
+  }
+
+  // ─── Reset ────────────────────────────────────────────────────────────────
+
+  function confirmReset() {
+    document.getElementById('resetModal').classList.add('visible');
+  }
+
+  function closeModal() {
+    document.getElementById('resetModal').classList.remove('visible');
+  }
+
+  function doReset() {
+    localStorage.removeItem(STORAGE_KEY);
+    closeModal();
+    // Full page reload for clean slate
+    location.reload();
   }
 </script>
 
